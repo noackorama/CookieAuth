@@ -1,0 +1,5 @@
+pluginname=CookieAuth
+pluginclassname=CookieAuth
+origin=data-quest
+version=1
+StudipMinVersion=2.4
