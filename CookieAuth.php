@@ -21,7 +21,7 @@ class CookieAuth extends StudipPlugin implements SystemPlugin
     function __construct()
     {
         parent::__construct();
-        $this->cookie_name = $GLOBALS['STUDIP_INSTALLATION_ID'] . get_class($this);
+        $this->cookie_name = md5($GLOBALS['STUDIP_INSTALLATION_ID']) . get_class($this);
         if ($GLOBALS['user']->id && $GLOBALS['user']->id === 'nobody') {
             $cookie_token = $_COOKIE[$this->cookie_name];
             if ($cookie_token) {
@@ -42,10 +42,10 @@ class CookieAuth extends StudipPlugin implements SystemPlugin
                 if (Request::get('cookie_auth_token')) {
                     $token = md5(uniqid($this->cookie_name,1));
                     UserConfig::get($GLOBALS['user']->id)->store('COOKIE_AUTH_TOKEN', $token);
-                    setcookie($this->cookie_name, $token, strtotime('+1 year'), $url_parts['path'], $url_parts['domain'], $_SERVER['HTTPS'] === 'On', true);
+                    setcookie($this->cookie_name, $token, strtotime('+1 year'), $url_parts['path'], $url_parts['host'], $_SERVER['HTTPS'] === 'On', true);
                 } else {
                     UserConfig::get($GLOBALS['user']->id)->delete('COOKIE_AUTH_TOKEN');
-                    setcookie($this->cookie_name, '', 0, $url_parts['path'], $url_parts['domain'], $_SERVER['HTTPS'] === 'On', true);
+                    setcookie($this->cookie_name, '', 0, $url_parts['path'], $url_parts['host'], $_SERVER['HTTPS'] === 'On', true);
                 }
             }
             $snippet = '
