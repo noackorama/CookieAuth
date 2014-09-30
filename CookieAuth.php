@@ -33,9 +33,15 @@ class CookieAuth extends StudipPlugin implements SystemPlugin
             $navigation = new Navigation(_('Automatischer Login'), URLHelper::getUrl('plugins.php/' . __CLASS__, array('cid' => null,'cancel_login' => 1)));
             $navigation->setDescription(sprintf(_('für Nutzer: %s'), $this->cookie_login_user->username));
             Navigation::insertItem('/login/remote_user',$navigation,'login');
+            
+            $this->inject_js('table.index_box.logintable td div a', 'login.php', array(
+                'username' => $this->cookie_login_user->username,
+                'url'      => URLHelper::getUrl('plugins.php/' . __CLASS__, array('cid' => null, 'cancel_login' => 1, 'return_to' => $_SERVER['REQUEST_URI'])),
+            ));
         } else {
             $this->cookie_login_user = null;
         }
+
         if (strpos($_SERVER['REQUEST_URI'], 'dispatch.php/settings/general') !== false) {
             $url_parts = parse_url($GLOBALS['ABSOLUTE_URI_STUDIP']);
             if (UserConfig::get($GLOBALS['user']->id)->COOKIE_AUTH_TOKEN && !$this->cookie_login_user) {
@@ -52,29 +58,26 @@ class CookieAuth extends StudipPlugin implements SystemPlugin
                     setcookie($this->cookie_name, '', 0, $url_parts['path'], $url_parts['host'], $_SERVER['HTTPS'] === 'On', true);
                 }
             }
-            $snippet = '
-            <tr>
-                <td>
-                    <label for="cookie_auth_token">
-                        Immer angemeldet bleiben<br>
-                        <dfn id="cookie_auth_token_description">
-                            Mit dieser Einstellung können Sie einen dauerhaften cookie in Ihrem Browser setzen, mit dem Sie automatisch angemeldet werden können.
-                        </dfn>
-                    </label>
-                </td>
-                <td>
-                    <input type="checkbox" value="1" aria-describedby="cookie_auth_token" id="cookie_auth_token" name="cookie_auth_token" ' . ($this->cookie_login_user ? 'checked' : '') .'>
-                </td>
-            </tr>';
-
-             $snippet = jsready($snippet, 'script-double');
-             PageLayout::addHeadElement('script', array('type' => 'text/javascript'),"jQuery(function (\$) {\$('#main_content tbody tr').first().after('$snippet');});");
-
+            
+            $this->inject_js('#main_content tbody tr', 'settings.php', array('checked' => $this->cookie_login_user));
         }
+    }
+
+    private function inject_js($selector, $template, $variables)
+    {
+        $factory = new Flexi_TemplateFactory(__DIR__ . '/templates');
+        $snippet = $factory->render($template, $variables);
+        $snippet = str_replace("\n", "\\\n", $snippet);
+        
+        $js = $factory->render('js.php', compact('selector', 'snippet'));
+
+        PageLayout::addHeadElement('script', array('type' => 'text/javascript'), $js);
     }
 
     function show_action()
     {
+        $redirect = Request::get('return_to', 'index.php');
+        
         global $auth, $sess, $user;
         if ($this->cookie_login_user && $this->cookie_login_user->id !== $user->id) {
             $sess->regenerate_session_id(array('auth'));
@@ -87,14 +90,10 @@ class CookieAuth extends StudipPlugin implements SystemPlugin
             $auth->auth["uid"] = $this->cookie_login_user->id;
             $auth->auth["exp"] = time() + (60 * $auth->lifetime);
             $auth->auth["refresh"] = time() + (60 * $auth->refresh);
-            page_close();
-            header("Location:" . URLHelper::getURL("index.php"));
-            die();
-        } else {
-            page_close();
-            header("Location:" . URLHelper::getURL("index.php"));
-            die();
         }
+        page_close();
+        header("Location:" . URLHelper::getURL($redirect));
+        die();
     }
 
     public static function onEnable($plugin_id)
@@ -105,5 +104,3 @@ class CookieAuth extends StudipPlugin implements SystemPlugin
 
     }
 }
-
-?>
