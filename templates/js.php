@@ -1,3 +1,3 @@
 jQuery(function ($) {
-    $('<?= $selector ?>').first().after('<?= addcslashes($snippet, "'") ?>');
+    $('<?= $selector ?>').first().<?= $location ?>('<?= addcslashes($snippet, "'") ?>');
 });

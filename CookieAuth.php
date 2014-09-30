@@ -37,7 +37,7 @@ class CookieAuth extends StudipPlugin implements SystemPlugin
             $this->inject_js('table.index_box.logintable td div a', 'login.php', array(
                 'username' => $this->cookie_login_user->username,
                 'url'      => URLHelper::getUrl('plugins.php/' . __CLASS__, array('cid' => null, 'cancel_login' => 1, 'return_to' => $_SERVER['REQUEST_URI'])),
-            ));
+            ), 'before');
         } else {
             $this->cookie_login_user = null;
         }
@@ -63,13 +63,13 @@ class CookieAuth extends StudipPlugin implements SystemPlugin
         }
     }
 
-    private function inject_js($selector, $template, $variables)
+    private function inject_js($selector, $template, $variables, $location = 'after')
     {
         $factory = new Flexi_TemplateFactory(__DIR__ . '/templates');
         $snippet = $factory->render($template, $variables);
         $snippet = str_replace("\n", "\\\n", $snippet);
         
-        $js = $factory->render('js.php', compact('selector', 'snippet'));
+        $js = $factory->render('js.php', compact('selector', 'snippet', 'location'));
 
         PageLayout::addHeadElement('script', array('type' => 'text/javascript'), $js);
     }
