@@ -58,8 +58,13 @@ class CookieAuth extends StudipPlugin implements SystemPlugin
                     setcookie($this->cookie_name, '', 0, $url_parts['path'], $url_parts['host'], $_SERVER['HTTPS'] === 'On', true);
                 }
             }
-            
-            $this->inject_js('#main_content tbody tr', 'settings.php', array('checked' => $this->cookie_login_user));
+
+            if (Navigation::hasItem('/profile/settings')) {
+                $this->inject_js('#layout_content form fieldset', 'settings-3.4.php', array('checked' => $this->cookie_login_user), 'append');
+            } else {
+                $this->inject_js('#main_content tbody tr', 'settings.php', array('checked' => $this->cookie_login_user));
+                
+            }
         }
     }
 
