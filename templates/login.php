@@ -1,4 +1,4 @@
 <a href="<?= $url ?>">
-    <?= sprintf(_('Automatischer Login für "%s"'), htmlReady($username)) ?>
+    <?= sprintf(_('Automatischer Login fÃ¼r "%s"'), htmlReady($username)) ?>
 </a>
  /

@@ -1,7 +1,7 @@
 <?php
 /*
  * CookieAuth.php
- * Copyright (c) 2013  André Noack <noack@data-quest.de>
+ * Copyright (c) 2013  AndrÃ© Noack <noack@data-quest.de>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -21,23 +21,30 @@ class CookieAuth extends StudipPlugin implements SystemPlugin
     function __construct()
     {
         parent::__construct();
-        $this->cookie_name = md5($GLOBALS['STUDIP_INSTALLATION_ID']) . get_class($this);
+        $this->cookie_name = md5(Config::get()->STUDIP_INSTALLATION_ID) . get_class($this);
         if ($GLOBALS['user']->id && $GLOBALS['user']->id === 'nobody') {
             $cookie_token = $_COOKIE[$this->cookie_name];
             if ($cookie_token) {
-                $user_config_entry = array_pop(UserConfigEntry::findBySQL("field = ? AND value = ?", array('COOKIE_AUTH_TOKEN', $cookie_token)));
-                $this->cookie_login_user = User::find($user_config_entry->user_id);
+                if (class_exists(UserConfigEntry)) {
+                    $user_config_entry = UserConfigEntry::findOneBySQL("field = ? AND value = ?", array('COOKIE_AUTH_TOKEN', $cookie_token));
+                    $this->cookie_login_user = User::find($user_config_entry->user_id);
+                } else {
+                    $user_config_entry = ConfigValue::findOneBySQL("field = ? AND value = ?", array('COOKIE_AUTH_TOKEN', $cookie_token));
+                    $this->cookie_login_user = User::find($user_config_entry->range_id);
+                }
             }
         }
         if ($this->cookie_login_user && !$this->cookie_login_user->locked) {
-            $navigation = new Navigation(_('Automatischer Login'), URLHelper::getUrl('plugins.php/' . __CLASS__, array('cid' => null,'cancel_login' => 1)));
-            $navigation->setDescription(sprintf(_('für Nutzer: %s'), $this->cookie_login_user->username));
-            Navigation::insertItem('/login/remote_user',$navigation,'login');
-            
-            $this->inject_js('table.index_box.logintable td div a', 'login.php', array(
-                'username' => $this->cookie_login_user->username,
-                'url'      => URLHelper::getUrl('plugins.php/' . __CLASS__, array('cid' => null, 'cancel_login' => 1, 'return_to' => $_SERVER['REQUEST_URI'])),
-            ), 'before');
+
+            $navigation = new Navigation(_('Automatischer Login'), URLHelper::getUrl('plugins.php/' . __CLASS__, array('cid' => null, 'cancel_login' => 1)));
+            $navigation->setDescription(sprintf(_('fÃ¼r Nutzer: %s'), $this->cookie_login_user->username));
+            Navigation::insertItem('/login/remote_user', $navigation, 'login');
+            if ($GLOBALS['auth']->auth['uid'] === '' || $GLOBALS['auth']->auth['uid'] === 'form') {
+                $this->inject_js('div.index_main div a', 'login.php', array(
+                    'username' => $this->cookie_login_user->username,
+                    'url'      => URLHelper::getUrl('plugins.php/' . __CLASS__, array('cid' => null, 'cancel_login' => 1, 'return_to' => $_SERVER['REQUEST_URI'])),
+                ), 'before');
+            }
         } else {
             $this->cookie_login_user = null;
         }
@@ -61,9 +68,6 @@ class CookieAuth extends StudipPlugin implements SystemPlugin
 
             if (Navigation::hasItem('/profile/settings')) {
                 $this->inject_js('#layout_content form fieldset', 'settings-3.4.php', array('checked' => $this->cookie_login_user), 'append');
-            } else {
-                $this->inject_js('#main_content tbody tr', 'settings.php', array('checked' => $this->cookie_login_user));
-                
             }
         }
     }
@@ -73,7 +77,7 @@ class CookieAuth extends StudipPlugin implements SystemPlugin
         $factory = new Flexi_TemplateFactory(__DIR__ . '/templates');
         $snippet = $factory->render($template, $variables);
         $snippet = str_replace("\n", "\\\n", $snippet);
-        
+
         $js = $factory->render('js.php', compact('selector', 'snippet', 'location'));
 
         PageLayout::addHeadElement('script', array('type' => 'text/javascript'), $js);
@@ -82,7 +86,7 @@ class CookieAuth extends StudipPlugin implements SystemPlugin
     function show_action()
     {
         $redirect = Request::get('return_to', 'index.php');
-        
+
         global $auth, $sess, $user;
         if ($this->cookie_login_user && $this->cookie_login_user->id !== $user->id) {
             $sess->regenerate_session_id(array('auth'));
