@@ -25,7 +25,7 @@ class CookieAuth extends StudipPlugin implements SystemPlugin
         if ($GLOBALS['user']->id && $GLOBALS['user']->id === 'nobody') {
             $cookie_token = $_COOKIE[$this->cookie_name];
             if ($cookie_token) {
-                if (class_exists(UserConfigEntry)) {
+                if (class_exists('UserConfigEntry')) {
                     $user_config_entry = UserConfigEntry::findOneBySQL("field = ? AND value = ?", array('COOKIE_AUTH_TOKEN', $cookie_token));
                     $this->cookie_login_user = User::find($user_config_entry->user_id);
                 } else {
